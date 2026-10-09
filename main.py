@@ -1,3 +1,6 @@
+import os
+
+from tradingagents.dataflows.date_window import get_current_date
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 
@@ -12,7 +15,12 @@ config = DEFAULT_CONFIG.copy()
 ta = TradingAgentsGraph(debug=True, config=config)
 
 # forward propagate
-_, decision = ta.propagate("NVDA", "2026-09-01")
+# propagate() rejects a future trade_date, so default to today and let the
+# environment override it for a specific point-in-time run.
+ticker = os.environ.get("TRADINGAGENTS_TICKER", "NVDA")
+trade_date = os.environ.get("TRADINGAGENTS_TRADE_DATE") or get_current_date()
+print(f"Analyzing {ticker} as of {trade_date}...")
+_, decision = ta.propagate(ticker, trade_date)
 print(decision)
 
 # Memorize mistakes and reflect

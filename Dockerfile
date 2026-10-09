@@ -25,4 +25,8 @@ WORKDIR /home/appuser/app
 
 COPY --from=builder --chown=appuser:appuser /build .
 
-ENTRYPOINT ["tradingagents"]
+# The image's default interface is the browser UI on :8000. For the
+# interactive CLI, override the entrypoint (docker compose does this on the
+# `tradingagents` service):  docker run --entrypoint tradingagents <image>
+EXPOSE 8000
+ENTRYPOINT ["tradingagents-web", "--host", "0.0.0.0", "--port", "8000"]

@@ -7,6 +7,7 @@ import yfinance as yf
 from dateutil.relativedelta import relativedelta
 from stockstats import wrap
 
+from tradingagents.dataflows.config import get_config
 from tradingagents.dataflows.errors import NoMarketDataError, VendorError
 from tradingagents.dataflows.symbols import normalize_symbol
 from tradingagents.dataflows.vendors.yahoo.ohlcv import (
@@ -59,13 +60,21 @@ def get_YFin_data_online(
         if col in data.columns:
             data[col] = data[col].round(2)
 
+    total_rows = len(data)
+    max_rows = int(get_config().get("max_stock_data_rows") or 0)
+    if max_rows > 0 and total_rows > max_rows:
+        data = data.tail(max_rows)  # newest rows; older ones cost tokens every round
     csv_string = data.to_csv()
 
     # Name the resolved symbol when it differs, so the reader sees which
     # instrument was priced.
     label = canonical if canonical == symbol.upper() else f"{canonical} (from {symbol})"
     header = f"# Stock data for {label} from {start_date} to {end_date}\n"
-    header += f"# Total records: {len(data)}\n\n"
+    header += f"# Total records: {len(data)}\n"
+    if len(data) < total_rows:
+        header += (f"# (showing the newest {len(data)} of {total_rows} rows in the "
+                   f"requested range; older rows omitted to save tokens)\n")
+    header += "\n"
 
     return header + csv_string
 

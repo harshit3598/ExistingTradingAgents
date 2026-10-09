@@ -20,6 +20,10 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_TEMPERATURE":          "temperature",
     "TRADINGAGENTS_LLM_MAX_RETRIES":      "llm_max_retries",
     "TRADINGAGENTS_MAX_TOKENS":           "max_tokens",
+    "TRADINGAGENTS_MAX_STOCK_DATA_ROWS":  "max_stock_data_rows",
+    "TRADINGAGENTS_MAX_INDICATOR_DAYS":   "max_indicator_look_back_days",
+    "TRADINGAGENTS_MEMORY_SAME_ENTRIES":  "memory_same_ticker_entries",
+    "TRADINGAGENTS_MEMORY_CROSS_ENTRIES": "memory_cross_ticker_entries",
     # Provider-specific reasoning/thinking knobs (None = each provider's own
     # default). Settable here for non-interactive runs; the CLI also offers an
     # interactive choice, which is skipped when the matching var is set.
@@ -115,6 +119,15 @@ DEFAULT_CONFIG = _apply_env_overrides({
     "max_debate_rounds": 1,
     "max_risk_discuss_rounds": 1,
     "max_recur_limit": 100,
+    # Token-saving caps on what the analysts' tools hand back to the model.
+    # 0 means no cap (the default, so behaviour is unchanged until you opt in).
+    # Rows are the newest ones; every tool call is re-billed on each later
+    # round of that analyst's loop, so a smaller payload saves tokens repeatedly.
+    "max_stock_data_rows": 0,             # get_stock_data: newest N daily rows
+    "max_indicator_look_back_days": 0,    # get_indicators: clamp the model's look_back_days
+    # Past decisions injected into the Portfolio Manager prompt (see decision_log).
+    "memory_same_ticker_entries": 5,      # full decision + reflection each
+    "memory_cross_ticker_entries": 3,     # reflection-only lessons
     # News / data fetching parameters
     # Increase for longer lookback strategies or to broaden macro coverage;
     # decrease to reduce token usage in agent prompts.

@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Changes that need action when upgrading are listed first in their release.
 
+## [Unreleased]
+
+### Added
+
+- **Web UI.** `tradingagents-web` (or `python -m web`) serves the whole workflow in a browser instead of a terminal: configure a run, watch the pipeline live over server-sent events (a page refresh resumes the stream), save and browse reports, sweep a backtest grid with live cell progress, and manage API keys and checkpoints. The `TRADINGAGENTS_*` environment variables override the form exactly as they do in the CLI, and the UI flags which settings they lock. The interactive CLI is unchanged, and the Docker image now serves this UI by default (`docker compose up web`), with the `tradingagents` service keeping the CLI one command away.
+
+- **Stock suggestions.** The *Stock Ideas* tab turns a plain-language goal ("10% profit in the next 1 week") into a screened shortlist: a liquid universe is priced through the cached data layer, scored against the requested target, horizon and risk appetite, then curated by the quick-thinking LLM using only those metrics — with the quantitative ranking as the fallback and a disclaimer travelling with the result. Any candidate deep-analyses into the full pipeline in one click.
+
+- **Trade execution.** `tradingagents.execution` turns a finished decision into an order through three agents: the RiskAgent validates concentration, buying power and order caps, the SizingAgent computes the quantity (10% of equity by default, whole position on sells), and the BrokerAgent places it. Dry-run is the default; real Robinhood limit orders require the `[robinhood]` extra plus `ROBINHOOD_TRADING_ENABLED=true` and credentials in `.env`. `REVIEW` and `Hold` are never traded. The web UI's *Execute trade* panel previews the full pipeline against the dry-run broker, and a live order is refused with a 409 until trading is explicitly enabled.
+
+- **Portfolio tab, charts and Q&A assistant.** The web UI now values a saved book (entered in the UI or synced read-only from Robinhood) with summary cards, an allocation donut and a holdings table. *Buy*/*Sell* are dry-run previews only. Hand-built SVG candlestick/area charts (1D–ALL) show volume, SMA 20/50 and tooltips. A floating assistant streams answers grounded in the book and price metrics.
+
+### Security
+
+- **Web UI hardening.** Report markdown no longer renders raw HTML, which closes a stored-XSS path from LLM output shaped by fetched news and posts. Every response now carries a strict CSP plus anti-framing headers. A Host allow-list blocks DNS rebinding, and state-changing requests must be same-origin `application/json`, which blocks CSRF from other sites. Non-loopback binds require a token (`TRADINGAGENTS_WEB_TOKEN`, auto-generated when unset), and Docker publishes the UI on `127.0.0.1` only. Typed portfolio paths must be `.json` files, backend URLs must be `http(s)`, and API keys containing whitespace or control characters are rejected.
+- **Live execution.** A live order now requires `"confirm": true` and is limited to one per run. The live broker logs in before quotes, buying power and positions are read; previously those reads ran unauthenticated, returned nothing, and silently skipped the buying-power and position-count checks.
+
+### Fixed
+
+- Backtests submitted from the web UI now use the portfolio entered in the form; it was previously dropped.
+- The *Run backtest* button now disables itself while a backtest is submitting; the start-date field shared its ID and was disabled instead.
+- Stock-idea runs resolve the backend URL the same way analyses do.
+- Tests that drive the interactive CLI no longer rewrite the developer's real `~/.tradingagents/cli_prefs.json`; every test gets a temporary one.
+
+### Changed
+
+- Redesigned web UI: a glass-card dark theme, an SVG icon set, a numbered pipeline stepper, a sticky run bar, visible focus rings and reduced-motion support.
+
+
 ## [0.5.1] — 2026-09-24
 
 A package layout organised by what each module holds, social posts screened by

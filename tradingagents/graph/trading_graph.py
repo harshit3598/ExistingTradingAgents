@@ -271,7 +271,10 @@ class TradingAgentsGraph:
             trade_date,
             asset_type=asset_type,
             past_context=self.memory_log.get_past_context(
-                company_name, as_of=self._memory_as_of(trade_date)
+                company_name,
+                n_same=int(self.config.get("memory_same_ticker_entries", 5)),
+                n_cross=int(self.config.get("memory_cross_ticker_entries", 3)),
+                as_of=self._memory_as_of(trade_date),
             ),
             instrument_context=self.resolve_instrument_context(company_name, asset_type, trade_date),
             portfolio_context=portfolio.render(company_name) if portfolio is not None else "",

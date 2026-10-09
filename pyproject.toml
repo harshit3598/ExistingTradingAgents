@@ -22,6 +22,8 @@ dependencies = [
     "requests>=2.32.4",
     "rich>=14.0.0",
     "typer>=0.21.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
     "stockstats>=0.6.5",
     "typing-extensions>=4.14.0",
     "yfinance>=1.4.1",
@@ -38,15 +40,22 @@ dev = [
 bedrock = [
     "langchain-aws>=1.5.0",
 ]
+# Robinhood trade execution (robin_stocks + TOTP for 2FA).
+# pip install "tradingagents[robinhood]"
+robinhood = [
+    "robin-stocks>=3.4.0",
+]
 
 [project.scripts]
 tradingagents = "cli.main:app"
+tradingagents-web = "web.app:main"
 
 [tool.setuptools.packages.find]
-include = ["tradingagents*", "cli*"]
+include = ["tradingagents*", "cli*", "web*"]
 
 [tool.setuptools.package-data]
 cli = ["static/*"]
+web = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -9,6 +9,7 @@ from typing import Annotated
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
+from tradingagents.dataflows.config import get_config
 from tradingagents.dataflows.date_window import as_of, as_of_window
 from tradingagents.dataflows.router import route_to_vendor
 from tradingagents.dataflows.vendors.yahoo.snapshot import build_verified_market_snapshot
@@ -57,6 +58,9 @@ def get_indicators(
     # LLMs sometimes pass multiple indicators as a comma-separated string;
     # split and process each individually.
     curr_date = as_of(curr_date, trade_date)
+    max_days = int(get_config().get("max_indicator_look_back_days") or 0)
+    if max_days > 0:
+        look_back_days = min(look_back_days, max_days)
     indicators = [i.strip().lower() for i in indicator.split(",") if i.strip()]
     results = []
     for ind in indicators:

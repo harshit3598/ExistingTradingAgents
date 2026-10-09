@@ -139,8 +139,10 @@ pip install .
 Alternatively, run with Docker:
 ```bash
 cp .env.example .env  # add your API keys
-docker compose run --rm tradingagents
+docker compose up web   # web UI on http://localhost:8000
+docker compose run --rm tradingagents   # or the interactive CLI
 ```
+The image serves the web UI by default on port 8000; the `tradingagents` service overrides the entrypoint to launch the interactive CLI instead.
 
 After updating the repository, rebuild the image with `docker compose build`.
 
@@ -189,6 +191,37 @@ Alternatively, copy `.env.example` to `.env` and fill in your keys:
 ```bash
 cp .env.example .env
 ```
+
+### Web UI
+
+Launch the web app — the whole workflow in a browser instead of a terminal:
+```bash
+tradingagents-web        # installed command
+python -m web            # alternative: run directly from source
+```
+Then open http://127.0.0.1:8000. `tradingagents-web --host 0.0.0.0 --port 8080` serves on another interface.
+
+What the UI covers:
+
+- **Configure a run** — ticker, analysis date, analysts, research depth, provider, quick/deep models, reasoning knobs and output language, prefilled with your previous answers.
+- **Watch it live** — pipeline stages, agent statuses, a streaming log of messages and tool calls, report sections as they are written, and LLM/tool/token stats. Refreshing the page resumes the stream where it left off.
+- **Save and browse reports** — save the finished run's report tree and read any past report in the browser.
+- **Backtests** — sweep a ticker/date grid and read the scored summary, with live cell progress.
+- **Stock ideas** — describe a goal in plain words (*“10% profit in the next 1 week”*) and get a screened shortlist: every candidate scored on whether its typical movement over *your* horizon can reach the target, with LLM-written rationale and risks from those metrics only (quantitative ranking when no API key is set), and a one-click deep-analyze into the full pipeline.
+- **Execute trades** — when an analysis finishes with a tradeable rating, the *Execute trade* panel walks the multi-agent pipeline (risk → sizing → broker): *Preview order (dry run)* simulates the whole thing without sending anything, and *Execute live order* places a real Robinhood limit order only when live trading is explicitly enabled (see [Executing decisions](#executing-decisions)).
+- **Portfolio** — enter holdings and cash once (or sync them read-only from Robinhood) and see total value, day's gain/loss, all-time return and buying power, an allocation donut, and a holdings table. Prices come from the same cached data the analysts use. *Buy*/*Sell* run a **dry-run** order preview only and never trade. The book is saved to `~/.tradingagents/portfolio.json` (mode 600; override with `TRADINGAGENTS_PORTFOLIO_PATH`).
+- **Charts** — candlestick or area charts with volume, SMA 20/50 and hover tooltips, for 1D (5-minute bars) / 1W / 1M / 1Y / ALL.
+- **Q&A assistant** — the chat button (bottom right) answers questions such as “What are my top gainers today?” with the quick-thinking model, grounded in your saved portfolio and price metrics for tickers you name. Replies stream in, history stays in your browser, and the assistant has no tools, so it cannot trade.
+- **Settings** — add provider API keys (stored in `.env` with mode 600, never echoed back) and clear checkpoints.
+
+The `TRADINGAGENTS_*` variables in `.env` override the form exactly as they do in the CLI, and the UI flags which settings are locked that way. One run executes at a time, matching the CLI.
+
+**Security.** The UI can store keys and place orders, so it is locked down by default:
+
+- On `127.0.0.1` it answers only to loopback host names (a DNS-rebinding guard), and state-changing requests must be same-origin `application/json`, so other websites open in your browser cannot drive it. Report markdown is rendered without raw HTML, and a strict Content-Security-Policy forbids inline scripts and framing.
+- Binding anywhere else (`--host 0.0.0.0`, Docker) requires a token: set `TRADINGAGENTS_WEB_TOKEN`, or one is generated and the sign-in URL (`…/?token=…`) is printed at startup. API clients can send `Authorization: Bearer <token>`. `TRADINGAGENTS_WEB_ALLOWED_HOSTS` adds host names to the loopback allow-list.
+- The Docker `web` service publishes on `127.0.0.1:8000` only.
+- A portfolio path typed into the form must be a `.json` file.
 
 ### CLI Usage
 
@@ -299,6 +332,46 @@ _, decision = ta.propagate("NVDA", "2026-09-01", portfolio=portfolio)
 The CLI takes the same content as a JSON file: `tradingagents --portfolio my_book.json`.
 
 An empty `positions` list means a flat book, which is different from passing nothing. A run without a portfolio is never treated as flat.
+
+## Executing decisions
+
+A decision only becomes a trade through a second multi-agent pipeline — `tradingagents.execution` — that runs in sequence, dry-run by default:
+
+```python
+from tradingagents.agents.rating import parse_rating
+from tradingagents.execution import create_orchestrator
+
+signal = parse_rating(decision)          # the 5-tier rating, or REVIEW
+orchestrator = create_orchestrator()     # DryRunBroker unless live trading is enabled
+result = orchestrator.execute(signal, "NVDA", portfolio)
+print(result.executed, result.message)
+```
+
+- The **RiskAgent** validates the sized order and blocks it on any breach: minimum and maximum order value, buying power, position concentration (25% of equity by default) and a cap on open positions.
+- The **SizingAgent** allocates a fraction of portfolio equity (10% by default), capped by available cash for buys; a sell defaults to the whole position.
+- The **BrokerAgent** is `DryRunBroker` — it logs exactly what would happen and never touches an account — unless live trading is turned on.
+
+`REVIEW` (a decision nobody can read) and `Hold` are never traded.
+
+### Live Robinhood orders
+
+Real orders need the optional extra and an explicit opt-in:
+
+```bash
+pip install "tradingagents[robinhood]"
+
+ROBINHOOD_USERNAME=you@example.com
+ROBINHOOD_PASSWORD=...
+ROBINHOOD_TRADING_ENABLED=true    # absent or false → always dry-run
+```
+
+`create_orchestrator()` then routes orders through `RobinhoodBroker` (limit orders, GTC, regular hours), which reads the credentials from the environment and refuses to start without them. Anything short of that flag keeps the whole pipeline on the dry-run broker, so no request — including the web UI's *Execute live order* button — can place a real order by accident.
+
+Accounts with two-factor authentication pass a one-time `mfa_code` with the login: the web panel has a *2FA / MFA code* field next to the limit price, and the API accepts `mfa_code` in the execute request body. A live execute request must also carry `"confirm": true`, and each analysis run can send at most one live order.
+
+A live broker logs in before anything else, and the order is refused if that login fails or buying power cannot be read, so it never runs on the no-account fallback budget.
+
+Sizing and risk limits are configurable (`sizing_fraction`, `risk_limits`, `default_price`); see `tradingagents/execution.py` for the full config surface.
 
 ## Persistence and Recovery
 

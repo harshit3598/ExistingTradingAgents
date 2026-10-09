@@ -72,6 +72,17 @@ def _dummy_api_keys(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_cli_prefs(tmp_path, monkeypatch):
+    """Point the remembered-CLI-answers file at a temp path for every test.
+
+    ``get_user_selections()`` saves preferences as a side effect, so a test
+    that drives the interactive flow would otherwise rewrite the developer's
+    real ``~/.tradingagents/cli_prefs.json``.
+    """
+    monkeypatch.setattr("cli.prefs._PREFS_PATH", tmp_path / "cli_prefs.json")
+
+
+@pytest.fixture(autouse=True)
 def _isolate_config():
     """Reset the global dataflows config before and after each test.
 

@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07090e">
+<meta name="referrer" content="no-referrer">
+<title>TradingAgents — Multi-Agent LLM Trading Research</title>
+<link rel="stylesheet" href="/static/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2334d399'/%3E%3Cstop offset='1' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M7 21l6-6 4 4 8-8' fill='none' stroke='%2304130d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- Icon sprite (Lucide-style strokes; inline so the CSP needs no extra origin). -->
+<svg width="0" height="0" class="hidden" aria-hidden="true">
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+  <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8z"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m10.3 3.9-8.5 14.7A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.4L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-pie" viewBox="0 0 24 24"><path d="M21.2 15.9A10 10 0 1 1 8 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 2l.6 1.4L7 4l-1.4.6L5 6l-.6-1.4L3 4l1.4-.6z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M8 17V9M12 17V5M16 17v-6M20 17v-3"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark"><svg class="icon"><use href="#i-trend"/></svg></span>
+    <span><span class="brand-name">TradingAgents</span><span class="sub">Multi-agent LLM trading research</span></span>
+  </div>
+  <nav class="tabs" aria-label="Sections">
+    <button class="tab active" data-view="analyze"><svg class="icon"><use href="#i-plus"/></svg>New Analysis</button>
+    <button class="tab" data-view="run" id="tab-run" hidden><svg class="icon"><use href="#i-activity"/></svg>Live Run</button>
+    <button class="tab" data-view="portfolio"><svg class="icon"><use href="#i-pie"/></svg>Portfolio</button>
+    <button class="tab" data-view="suggest"><svg class="icon"><use href="#i-bulb"/></svg>Stock Ideas</button>
+    <button class="tab" data-view="reports"><svg class="icon"><use href="#i-file"/></svg>Reports</button>
+    <button class="tab" data-view="backtest"><svg class="icon"><use href="#i-history"/></svg>Backtest</button>
+    <button class="tab" data-view="settings"><svg class="icon"><use href="#i-sliders"/></svg>Settings</button>
+  </nav>
+  <div id="active-run-pill" class="pill hidden" role="button" tabindex="0"></div>
+</header>
+
+<main>
+
+<!-- ============================= ANALYZE ============================= -->
+<section id="view-analyze" class="view">
+  <div class="page-head">
+    <div class="eyebrow">Research pipeline</div>
+    <h1>New analysis</h1>
+    <p class="muted">Analyst team → Research team → Trader → Risk management → Portfolio management</p>
+  </div>
+
+  <div id="env-lock-banner" class="notice warn hidden"></div>
+
+  <form id="analyze-form" class="form-grid" autocomplete="off">
+    <div class="split">
+      <div class="card">
+        <h2><span class="step">1</span>What to analyze</h2>
+        <div class="row">
+          <label class="field">
+            <span>Ticker symbol</span>
+            <input id="ticker" name="ticker" type="text" placeholder="SPY, 0700.HK, BTC-USD" value="SPY" spellcheck="false" autocapitalize="characters">
+            <small id="asset-hint" class="muted"></small>
+          </label>
+          <label class="field">
+            <span>Analysis date</span>
+            <input id="analysis_date" name="analysis_date" type="date">
+            <small class="muted">Cannot be in the future</small>
+          </label>
+        </div>
+        <label class="field">
+          <span>Output language</span>
+          <input id="output_language" name="output_language" list="language-list" value="English">
+          <datalist id="language-list"></datalist>
+        </label>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">2</span>Analyst team</h2>
+        <div id="analyst-chips" class="chips"></div>
+        <small class="muted">Crypto tickers have no Fundamentals Analyst — that chip disables itself.</small>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">3</span>Research depth</h2>
+      <div id="depth-cards" class="choices"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">4</span>Models</h2>
+      <div class="row">
+        <label class="field">
+          <span>LLM provider</span>
+          <select id="llm_provider"></select>
+        </label>
+        <label class="field">
+          <span>Backend URL <em>(optional)</em></span>
+          <input id="backend_url" type="url" placeholder="provider default" spellcheck="false">
+          <small class="muted">Honor an explicit endpoint (vLLM, relay, regional base…)</small>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field">
+          <span>Quick-thinking model <em>(analysts, tools)</em></span>
+          <select id="quick_think_llm"></select>
+          <input id="quick_custom" type="text" class="hidden" placeholder="model id, e.g. gpt-6-luna" spellcheck="false">
+        </label>
+        <label class="field">
+          <span>Deep-thinking model <em>(debate, decisions)</em></span>
+          <select id="deep_think_llm"></select>
+          <input id="deep_custom" type="text" class="hidden" placeholder="model id" spellcheck="false">
+        </label>
+      </div>
+      <div id="knob-row" class="row hidden">
+        <label class="field">
+          <span id="knob-label">Provider reasoning setting</span>
+          <select id="knob-select"></select>
+        </label>
+      </div>
+
+      <div id="api-key-block" class="notice hidden">
+        <p><strong id="api-key-env"></strong> is not set yet — paste a key to run (saved to your <code>.env</code>, never echoed back).</p>
+        <div class="row">
+          <input id="api-key-input" type="password" placeholder="API key" autocomplete="off" spellcheck="false">
+          <button type="button" id="api-key-save" class="btn"><svg class="icon"><use href="#i-key"/></svg>Save key</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step">5</span>Advanced <span class="muted">· optional</span></h2>
+      <div class="row">
+        <label class="field">
+          <span>Checkpoint / resume</span>
+          <select id="checkpoint">
+            <option value="">Environment default</option>
+            <option value="true">Enabled — resume a crashed run</option>
+            <option value="false">Disabled</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Portfolio <em>(JSON or path to a .json file)</em></span>
+          <textarea id="portfolio" rows="3" spellcheck="false" placeholder='{"cash": 10000, "positions": [{"ticker": "NVDA", "quantity": 10}]}  —  or /path/to/portfolio.json'></textarea>
+          <small class="muted">Lets the trader and risk agents size against your actual holdings</small>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-actions sticky">
+      <button type="submit" id="start-run" class="btn primary big"><svg class="icon"><use href="#i-play"/></svg>Run analysis</button>
+      <span id="form-error" class="error-text" role="alert"></span>
+    </div>
+  </form>
+</section>
+
+<!-- =============================== RUN =============================== -->
+<section id="view-run" class="view" hidden>
+  <div class="page-head row-between">
+    <div>
+      <div class="eyebrow">Live run</div>
+      <h1 id="run-title">Run</h1>
+      <p class="muted small" id="run-sub"></p>
+    </div>
+    <div class="run-actions">
+      <span id="run-status" class="status-badge">queued</span>
+      <span id="run-elapsed" class="muted mono"></span>
+      <button id="btn-save-report" class="btn hidden"><svg class="icon"><use href="#i-save"/></svg>Save report</button>
+      <button id="btn-new-analysis" class="btn ghost"><svg class="icon"><use href="#i-plus"/></svg>New analysis</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <ol id="pipeline" class="pipeline">
+      <li data-stage="analysts"><span class="dot"></span>Analyst team</li>
+      <li data-stage="research"><span class="dot"></span>Research team</li>
+      <li data-stage="trader"><span class="dot"></span>Trader</li>
+      <li data-stage="risk"><span class="dot"></span>Risk management</li>
+      <li data-stage="portfolio"><span class="dot"></span>Portfolio management</li>
+    </ol>
+    <div id="agent-chips" class="chips agents"></div>
+  </div>
+
+  <div class="stats-row" id="stats-row">
+    <div class="stat"><span class="stat-v mono" id="st-llm">0</span><span class="stat-k">LLM calls</span></div>
+    <div class="stat"><span class="stat-v mono" id="st-tools">0</span><span class="stat-k">Tool calls</span></div>
+    <div class="stat"><span class="stat-v mono" id="st-tokens">0</span><span class="stat-k">Tokens out</span></div>
+    <div class="stat"><span class="stat-v mono" id="st-tokens-in">0</span><span class="stat-k">Tokens in</span></div>
+    <div class="stat"><span class="stat-v mono" id="st-elapsed">0s</span><span class="stat-k">Elapsed</span></div>
+  </div>
+
+  <div id="final-card" class="card final hidden">
+    <div class="card-head">
+      <h2>Final decision</h2>
+      <span id="final-rating" class="rating"></span>
+    </div>
+    <div id="final-body" class="prose"></div>
+    <div id="final-note" class="notice warn hidden"></div>
+  </div>
+
+  <div id="exec-card" class="card hidden">
+    <div class="card-head">
+      <h2>Execute trade</h2>
+      <span id="exec-badge" class="rating"></span>
+    </div>
+    <p class="muted small">Multi-agent pipeline: <strong>risk check → position sizing → broker</strong>. A preview walks the whole pipeline against the dry-run broker and never sends an order. Live trading only happens with <code>ROBINHOOD_TRADING_ENABLED</code> and Robinhood credentials in <code>.env</code>, at most once per run. Not investment advice — you are responsible for real orders.</p>
+    <div class="row">
+      <label class="field"><span>Limit price <em>(blank = latest close)</em></span>
+        <input id="exec-price" type="number" step="0.01" min="0.01" placeholder="auto"></label>
+      <label class="field"><span>2FA / MFA code <em>(only if your account prompts)</em></span>
+        <input id="exec-mfa" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]*" placeholder="optional — live login only"></label>
+    </div>
+    <div class="form-actions">
+      <button id="btn-exec-preview" class="btn primary"><svg class="icon"><use href="#i-shield"/></svg>Preview order (dry run)</button>
+      <button id="btn-exec-live" class="btn danger"><svg class="icon"><use href="#i-bolt"/></svg>Execute live order…</button>
+    </div>
+    <div id="exec-result" class="hidden"></div>
+  </div>
+
+  <div id="run-error" class="card error-card hidden">
+    <h2>Run failed</h2>
+    <p id="run-error-msg"></p>
+    <details><summary>Technical details</summary><pre id="run-error-tb"></pre></details>
+  </div>
+
+  <div class="run-grid">
+    <div class="card">
+      <div class="card-head">
+        <h2>Live log</h2>
+        <label class="check small"><input type="checkbox" id="log-autoscroll" checked> Auto-scroll</label>
+      </div>
+      <div id="run-log" class="log" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Reports so far</h2></div>
+      <div id="run-sections" class="sections">
+        <p class="empty">Sections appear here as each agent finishes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= PORTFOLIO ============================ -->
+<section id="view-portfolio" class="view" hidden>
+  <div class="page-head row-between">
+    <div>
+      <div class="eyebrow"><svg class="icon"><use href="#i-sparkles"/></svg>Portfolio</div>
+      <h1>Your book, live-valued</h1>
+      <p class="muted">Holdings valued from the same cached prices the analysts use. <span id="pf-source" class="pill-tag"></span></p>
+    </div>
+    <div class="run-actions">
+      <span id="pf-market" class="live"></span>
+      <button id="pf-refresh" class="btn ghost"><svg class="icon"><use href="#i-refresh"/></svg>Refresh</button>
+      <button id="pf-edit" class="btn"><svg class="icon"><use href="#i-edit"/></svg>Edit holdings</button>
+    </div>
+  </div>
+
+  <div id="pf-error" class="notice danger hidden"></div>
+
+  <div id="pf-editor" class="card hidden">
+    <div class="card-head">
+      <h2>Holdings</h2>
+      <div class="run-actions">
+        <button type="button" id="pf-add-row" class="btn xs"><svg class="icon"><use href="#i-plus"/></svg>Add position</button>
+      </div>
+    </div>
+    <div class="editor-row muted small"><span>Ticker</span><span>Shares</span><span>Average cost</span><span></span></div>
+    <div id="pf-rows"></div>
+    <div class="row">
+      <label class="field"><span>Cash / buying power</span><input id="pf-cash" type="number" step="0.01" min="0" placeholder="0.00"></label>
+    </div>
+    <div class="form-actions">
+      <button type="button" id="pf-save" class="btn primary"><svg class="icon"><use href="#i-save"/></svg>Save holdings</button>
+      <button type="button" id="pf-cancel" class="btn ghost">Cancel</button>
+      <span id="pf-save-msg" class="error-text" role="alert"></span>
+    </div>
+    <div id="pf-rh" class="notice hidden">
+      <p><strong>Sync from Robinhood</strong> — read-only: copies your positions and buying power into this book. No orders are placed.</p>
+      <div class="row">
+        <input id="pf-rh-mfa" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="2FA code (if prompted)">
+        <button type="button" id="pf-rh-sync" class="btn"><svg class="icon"><use href="#i-refresh"/></svg>Sync now</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pf-metrics" class="metrics"></div>
+
+  <div class="pf-grid">
+    <div class="card lift">
+      <div class="card-head">
+        <h2>Allocation</h2>
+        <div class="seg" id="pf-alloc-mode">
+          <button type="button" data-mode="category" class="active">Type</button>
+          <button type="button" data-mode="holding">Holding</button>
+        </div>
+      </div>
+      <div id="pf-alloc"></div>
+    </div>
+
+    <div class="card" id="chart-card">
+      <div class="chart-head">
+        <div>
+          <div class="chart-title"><b id="ch-ticker">—</b><span id="ch-name" class="muted small"></span><span id="ch-live" class="live"></span></div>
+          <div class="chart-title"><span id="ch-price" class="chart-price">—</span><span id="ch-change" class="metric-s"></span><span id="ch-asof" class="muted small"></span></div>
+        </div>
+        <div class="chart-tools">
+          <form class="chart-search" id="ch-search" autocomplete="off">
+            <input id="ch-input" type="text" placeholder="Ticker" spellcheck="false" aria-label="Chart ticker">
+            <button class="btn xs" type="submit"><svg class="icon"><use href="#i-search"/></svg></button>
+          </form>
+          <div class="seg" id="ch-range">
+            <button type="button" data-range="1D">1D</button>
+            <button type="button" data-range="1W">1W</button>
+            <button type="button" data-range="1M" class="active">1M</button>
+            <button type="button" data-range="1Y">1Y</button>
+            <button type="button" data-range="ALL">ALL</button>
+          </div>
+          <div class="seg" id="ch-mode">
+            <button type="button" data-mode="candle" class="active" title="Candlesticks">Candles</button>
+            <button type="button" data-mode="area" title="Area">Area</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="chart-canvas" id="ch-canvas"><div class="chart-state">Pick a holding or search a ticker.</div></div>
+        <div class="chart-tip hidden" id="ch-tip"></div>
+      </div>
+      <div class="chart-legend"><span><i class="l20"></i>SMA 20</span><span><i class="l50"></i>SMA 50</span><span>Bars show volume</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h2>Holdings</h2>
+      <span id="pf-asof" class="muted small"></span>
+    </div>
+    <div id="pf-preview" class="hidden"></div>
+    <div class="table-wrap" id="pf-table"></div>
+  </div>
+</section>
+
+<!-- ============================ STOCK IDEAS =========================== -->
+<section id="view-suggest" class="view" hidden>
+  <div class="page-head">
+    <div class="eyebrow">Screener</div>
+    <h1>Stock ideas</h1>
+    <p class="muted">Screen liquid names for a target move over your horizon — e.g. “which stocks can give 10% profit in the next 1 week”. Momentum/volatility screen plus LLM curation; a research starting point, not investment advice.</p>
+  </div>
+
+  <div class="split">
+    <div class="card">
+      <h2>Goal</h2>
+      <label class="field">
+        <span>What are you looking for?</span>
+        <input id="sg-goal" type="text" placeholder="Stocks that could give 10% profit in the next 1 week">
+        <small id="sg-detected" class="muted"></small>
+      </label>
+      <div class="row">
+        <label class="field"><span>Target gain (%)</span>
+          <input id="sg-target" type="number" step="0.5" min="0.5" max="100" value="10"></label>
+        <label class="field"><span>Horizon (days)</span>
+          <input id="sg-days" type="number" min="1" max="90" value="7"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Suggestions</span>
+          <input id="sg-count" type="number" min="1" max="12" value="5"></label>
+        <label class="field"><span>Risk appetite</span>
+          <select id="sg-risk">
+            <option value="low">Low — prefer steadier names</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High — give it room to run</option>
+          </select></label>
+      </div>
+      <label class="field">
+        <span>Universe <em>(optional — blank uses the built-in liquid list)</em></span>
+        <textarea id="sg-universe" rows="2" spellcheck="false" placeholder="AAPL, NVDA, TSLA, BTC-USD …"></textarea>
+      </label>
+      <div class="form-actions">
+        <button type="button" id="sg-run" class="btn primary big"><svg class="icon"><use href="#i-bulb"/></svg>Suggest stocks</button>
+        <span id="sg-error" class="error-text" role="alert"></span>
+      </div>
+      <p id="sg-model-hint" class="muted small"></p>
+    </div>
+
+    <div class="card" id="sg-output-card">
+      <div class="card-head">
+        <h2>Suggestions</h2>
+        <span id="sg-status" class="status-badge hidden"></span>
+      </div>
+      <div id="sg-progress" class="progress hidden">
+        <div class="bar"></div><span class="label mono"></span>
+      </div>
+      <div id="sg-log" class="log compact"><p class="empty">Enter a goal and press Suggest.</p></div>
+      <div id="sg-results" class="hidden">
+        <div class="notice warn" id="sg-disclaimer"></div>
+        <div id="sg-table"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= REPORTS ============================= -->
+<section id="view-reports" class="view" hidden>
+  <div class="page-head">
+    <div class="eyebrow">Archive</div>
+    <h1>Saved reports</h1>
+    <p class="muted small mono" id="reports-dir"></p>
+  </div>
+  <div class="reports-grid">
+    <div class="card list-card">
+      <div id="report-list" class="list"></div>
+    </div>
+    <div class="card">
+      <div id="report-tabs" class="tabs secondary"></div>
+      <div id="report-body" class="prose"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= BACKTEST ============================= -->
+<section id="view-backtest" class="view" hidden>
+  <div class="page-head">
+    <div class="eyebrow">Evaluation</div>
+    <h1>Backtest</h1>
+    <p class="muted">Score past decisions over a grid of tickers and dates.</p>
+  </div>
+
+  <form id="backtest-form" class="split" autocomplete="off">
+    <div class="card">
+      <h2>Grid</h2>
+      <div class="row">
+        <label class="field">
+          <span>Tickers <em>(comma-separated)</em></span>
+          <input id="bt-tickers" type="text" placeholder="NVDA, AAPL" spellcheck="false">
+        </label>
+        <label class="field">
+          <span>Asset type</span>
+          <select id="bt-asset"><option value="stock">Stock</option><option value="crypto">Crypto</option></select>
+        </label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Start date</span><input id="bt-start" type="date"></label>
+        <label class="field"><span>End date</span><input id="bt-end" type="date"></label>
+        <label class="field"><span>Days between</span><input id="bt-every" type="number" value="7" min="1"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span>Run ID <em>(blank = new)</em></span><input id="bt-run-id" type="text" placeholder="resume an earlier sweep" spellcheck="false"></label>
+        <label class="field"><span>Portfolio <em>(JSON or .json path)</em></span><input id="bt-portfolio" type="text" placeholder="optional" spellcheck="false"></label>
+      </div>
+      <label class="field"><span>Analysts</span></label>
+      <div id="bt-analyst-chips" class="chips"></div>
+      <p class="muted small" id="bt-model-hint"></p>
+      <div class="form-actions">
+        <button type="submit" id="bt-submit" class="btn primary"><svg class="icon"><use href="#i-play"/></svg>Run backtest</button>
+        <span id="bt-error" class="error-text" role="alert"></span>
+      </div>
+    </div>
+
+    <div class="card" id="bt-output-card">
+      <div class="card-head"><h2>Output</h2><span id="bt-status" class="status-badge hidden"></span></div>
+      <div id="bt-progress" class="progress hidden"><div class="bar"></div><span class="label mono"></span></div>
+      <div id="bt-log" class="log"><p class="empty">Results appear here.</p></div>
+      <div id="bt-summary" class="prose hidden"></div>
+    </div>
+  </form>
+</section>
+
+<!-- ============================= SETTINGS ============================= -->
+<section id="view-settings" class="view" hidden>
+  <div class="page-head">
+    <div class="eyebrow">Configuration</div>
+    <h1>Settings</h1>
+    <p class="muted">API keys are stored in your project <code>.env</code> (mode 600) and never displayed back.</p>
+  </div>
+
+  <div class="split">
+    <div class="card">
+      <h2>Provider API keys</h2>
+      <div class="row">
+        <label class="field"><span>Provider</span><select id="set-provider"></select></label>
+        <label class="field"><span>API key</span><input id="set-key" type="password" placeholder="paste key" autocomplete="off" spellcheck="false"></label>
+      </div>
+      <div class="form-actions">
+        <button id="set-save" class="btn primary"><svg class="icon"><use href="#i-key"/></svg>Save key</button>
+        <span id="set-msg" class="muted small"></span>
+      </div>
+      <div id="set-key-status" class="keylist"></div>
+    </div>
+
+    <div class="card">
+      <h2>Environment</h2>
+      <dl class="kv">
+        <dt>Results directory</dt><dd class="mono small" id="set-results"></dd>
+        <dt>Active run</dt><dd id="set-active">none</dd>
+      </dl>
+      <div class="form-actions">
+        <button id="btn-clear-checkpoints" class="btn"><svg class="icon"><use href="#i-trash"/></svg>Clear checkpoints</button>
+        <span id="clear-msg" class="muted small"></span>
+      </div>
+      <p class="muted small">Settings forced through <code>TRADINGAGENTS_*</code> environment variables override the form.</p>
+      <div id="set-env-locks" class="muted mono small"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>About</h2>
+    <p class="muted">TradingAgents: Multi-Agents LLM Financial Trading Framework, by
+      <a href="https://github.com/TauricResearch" target="_blank" rel="noopener noreferrer">Tauric Research</a>.
+      This web UI runs the same graph the <code>tradingagents</code> CLI runs.</p>
+    <div id="announcements" class="notice hidden"></div>
+  </div>
+</section>
+
+</main>
+
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+<!-- =========================== Q&A ASSISTANT ========================== -->
+<button id="chat-fab" class="chat-fab" type="button" aria-label="Open the Q&amp;A assistant" aria-controls="chat-drawer">
+  <svg class="icon"><use href="#i-chat"/></svg>
+</button>
+<aside id="chat-drawer" class="chat-drawer hidden" role="dialog" aria-label="Q&amp;A assistant">
+  <div class="chat-head">
+    <span class="brand-mark"><svg class="icon"><use href="#i-sparkles"/></svg></span>
+    <div><b>Q&amp;A Assistant</b><small id="chat-model">Grounded in your portfolio and price data</small></div>
+    <span class="spacer"></span>
+    <button type="button" id="chat-clear" class="icon-btn" title="Clear history" aria-label="Clear history"><svg class="icon"><use href="#i-trash"/></svg></button>
+    <button type="button" id="chat-close" class="icon-btn" title="Close" aria-label="Close"><svg class="icon"><use href="#i-x"/></svg></button>
+  </div>
+  <div id="chat-body" class="chat-body" aria-live="polite"></div>
+  <div id="chat-suggestions" class="suggestions"></div>
+  <form id="chat-form" class="chat-input" autocomplete="off">
+    <textarea id="chat-input" rows="1" placeholder="Ask about your holdings or any ticker…" aria-label="Message"></textarea>
+    <button type="submit" id="chat-send" class="btn primary" aria-label="Send"><svg class="icon"><use href="#i-send"/></svg></button>
+  </form>
+  <div class="chat-foot">Research only — not investment advice. The assistant cannot trade.</div>
+</aside>
+
+<script src="/static/app.js"></script>
+<script src="/static/chart.js"></script>
+<script src="/static/portfolio.js"></script>
+<script src="/static/chatbot.js"></script>
+</body>
+</html>
